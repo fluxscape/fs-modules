@@ -414,6 +414,8 @@ export const chart_changed = {
   ...generateInputsChanged(interactionOptions),
 
   customPlugins(value) {
+    this.inputs.customPlugins = value;
+ 
     if (!this.chart) return;
 
     if (typeof value === 'object') {
