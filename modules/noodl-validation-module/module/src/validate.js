@@ -112,6 +112,7 @@ const ValidateNode = Noodl.defineNode({
 
       if (this.valuesObject) {
         this.valuesObject.on("change", this.objectChangedHandler);
+        this.objectChangedHandler();
       }
     },
   },
