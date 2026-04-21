@@ -40,12 +40,21 @@ const ValidateNode = Noodl.defineNode({
       type: "boolean",
       default: true,
     },
+    ObjectId: {
+      group: "General",
+      type: { name: "string", allowConnectionsOnly: true },
+      displayName: "Object Id",
+    },
   },
   outputs: {
     IsValid: {
       type: "boolean",
       group: "General",
       displayName: "Is Valid",
+    },
+    Errors: {
+      type: "array",
+      group: "General",
     },
   },
   initialize: function () {
@@ -54,6 +63,10 @@ const ValidateNode = Noodl.defineNode({
     this.errors = {};
     this.hasError = {};
     this.propertyDisabled = {};
+
+    this.objectChangedHandler = () => {
+      this.scheduleValidate();
+    };
   },
   changed: {
     Schema: function (script) {
@@ -88,6 +101,18 @@ const ValidateNode = Noodl.defineNode({
     },
     Enabled: function () {
       this.scheduleValidate();
+    },
+    ObjectId: function (objectId) {
+      if (this.valuesObject) {
+        this.valuesObject.off("change", this.objectChangedHandler);
+      }
+      this.valuesObject = Noodl.Object.exists(objectId)
+        ? Noodl.Objects[objectId]
+        : undefined;
+
+      if (this.valuesObject) {
+        this.valuesObject.on("change", this.objectChangedHandler);
+      }
     },
   },
   methods: {
@@ -138,15 +163,23 @@ const ValidateNode = Noodl.defineNode({
           }
           this.outputs.IsValid = false;
           this.flagOutputDirty("IsValid");
+
+          this.outputs.Errors = [];
+          this.flagOutputDirty("Errors");
           return;
         }
 
         if (this.schema !== undefined) {
           try {
+            const propertyValues = Object.assign(
+              {},
+              this.valuesObject ? this.valuesObject.data : {},
+              this.propertyValues,
+            );
             let cast = yup
               .object()
               .shape(this.schema)
-              .validateSync(this.propertyValues, { abortEarly: false });
+              .validateSync(propertyValues, { abortEarly: false });
 
             // The object was successfully validated
             for (var key in this.schema) {
@@ -160,6 +193,9 @@ const ValidateNode = Noodl.defineNode({
             }
             this.outputs.IsValid = true;
             this.flagOutputDirty("IsValid");
+
+            this.outputs.Errors = [];
+            this.flagOutputDirty("Errors");
 
             // Output properties
             for (var key in cast) {
@@ -193,6 +229,13 @@ const ValidateNode = Noodl.defineNode({
               if (this.hasOutput("haserr-" + key))
                 this.flagOutputDirty("haserr-" + key);
             }
+
+            // Create errors output array
+            this.outputs.Errors = Object.keys(this.errors).map((path) => ({
+              Property: path,
+              Error: this.errors[path],
+            }));
+            this.flagOutputDirty("Errors");
           }
         }
       }
