@@ -12,7 +12,10 @@
   "license": "ISC",
   "dependencies": {
     "@noodl/noodl-sdk": "github:noodlapp/noodl-sdk#feature/typescript",
-    "chart.js": "^3.7.1"
+    "chart.js": "^4.4.3",
+    "chartjs-adapter-dayjs-4": "^1.0.4",
+    "chartjs-plugin-annotation": "^3.0.1",
+    "dayjs": "^1.11.11"
   },
   "devDependencies": {
     "@babel/core": "^7.2.2",

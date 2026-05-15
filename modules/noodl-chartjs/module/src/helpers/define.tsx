@@ -1,7 +1,7 @@
 import * as Noodl from "@noodl/noodl-sdk";
 import { useCallback, useEffect, useRef } from "react";
 import { Chart, ChartConfiguration, ChartTypeRegistry } from "chart.js";
-import * as ChartHelpers from 'chart.js/helpers';
+import * as ChartHelpers from "chart.js/helpers";
 import { generateInputs, generateInputsChanged, Input } from "./boilerplate";
 import { chart_changed, chart_inputs, chart_options } from "./defaults";
 
@@ -19,7 +19,7 @@ function Canvas(props: any): JSX.Element {
   const ref = useCallback((node: HTMLCanvasElement) => {
     props.onCanvasChanged(node);
   }, []);
-  
+
   const sizerRef = useRef(null);
   const fixedSizeRef = useRef(null);
 
@@ -63,7 +63,7 @@ export function defineChartReactNode(args: ChartNodeOptions) {
 
       // Expose the Helper so we can get the Click data etc
       this.setOutputs({ helpers: ChartHelpers });
-      
+
       this.props.onCanvasChanged = (node: HTMLCanvasElement) => {
         if (this.chart) {
           this.chart.destroy();
@@ -139,12 +139,15 @@ export function defineChartReactNode(args: ChartNodeOptions) {
       data(value) {
         if (!this.chart) return;
         this.chart.data = value;
-        const animate = typeof this.inputs.animateOnDataUpdate === 'undefined' ? true : this.inputs.animateOnDataUpdate;
+        const animate =
+          typeof this.inputs.animateOnDataUpdate === "undefined"
+            ? true
+            : this.inputs.animateOnDataUpdate;
         // With initialDataSet, it will animate the first time.
         if (animate || !this.initialDataSet) {
           this.chart.update();
         } else {
-          this.chart.update('none');
+          this.chart.update("none");
         }
         this.initialDataSet = true;
       },
@@ -187,7 +190,7 @@ export function defineChartReactNode(args: ChartNodeOptions) {
         });
       },
       initChart(canvas: HTMLCanvasElement) {
-        const options = {
+        const options: any = {
           onClick: (e) => {
             this.setOutputs({ clickEventData: e });
             this.sendSignalOnOutput("onClick");
@@ -201,10 +204,7 @@ export function defineChartReactNode(args: ChartNodeOptions) {
           this.setOptions(options, element);
         }
 
-        // @ts-expect-error
         options.animations = this.inputs.animations;
-
-        // @ts-expect-error
         options.scales = this.inputs.scales;
 
         // @ts-expect-error
@@ -215,20 +215,24 @@ export function defineChartReactNode(args: ChartNodeOptions) {
         });
 
         const haveConnection = (portName: string) => {
-          return this.model.component.connections.findIndex((x) =>
-            x.sourceId === this.id && x.sourcePort === portName ||
-            x.targetId === this.id && x.targetPort === portName
-          ) !== -1;
-        }
+          return (
+            this.model.component.connections.findIndex(
+              (x) =>
+                (x.sourceId === this.id && x.sourcePort === portName) ||
+                (x.targetId === this.id && x.targetPort === portName)
+            ) !== -1
+          );
+        };
 
         const chartConfig: ChartConfiguration<any, any, any> = {
           type: args.type,
           options,
           // Only use default data if there is no connection
-          data: this.inputs.data || haveConnection('data') ? {} : args.defaultData,
+          data:
+            this.inputs.data || haveConnection("data") ? {} : args.defaultData,
           plugins: [
             {
-              id: 'noodlEventCatcher',
+              id: "noodlEventCatcher",
               beforeEvent: (chart, args, pluginOptions) => {
                 try {
                   this.setOutputs({
@@ -240,14 +244,30 @@ export function defineChartReactNode(args: ChartNodeOptions) {
                   /* noop */
                 }
               },
-            }
-          ]
+            },
+          ],
         };
 
         this.chart = new Chart(canvas, chartConfig);
         if (this.inputs.data) {
           this.chart.data = this.inputs.data;
         }
+        
+        // Add the plugins
+        // NOTE: Adding for example the annotations plugins before,
+        //       makes the chart not responsive.
+        //       Adding it like this solves that issue.
+        if (this.inputs.customPlugins) {
+          if (!options.plugins) {
+            options.plugins = {};
+          }
+
+          Object.entries(this.inputs.customPlugins).forEach(([key, value]) => {
+            this.chart.options.plugins[key] = value;
+          });
+        }
+
+        this.chart.update();
       },
     },
   });
